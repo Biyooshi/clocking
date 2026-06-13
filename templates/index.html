@@ -155,8 +155,8 @@
         <p>Generate a professional timecode video overlay in seconds.</p>
         
         <div class="input-group">
-            <label for="duration">Duration (seconds)</label>
-            <input type="number" id="duration" placeholder="e.g. 10" min="1" max="3600" value="10">
+            <label for="duration">Duration (HH:MM:SS:CC)</label>
+            <input type="text" id="duration" placeholder="e.g. 00:01:40:00" value="00:00:10:00" pattern="\d{2}:\d{2}:\d{2}:\d{2}">
         </div>
         
         <button id="generateBtn" onclick="generateVideo()">Generate Video</button>
@@ -181,9 +181,23 @@
             const videoPlayer = document.getElementById('videoPlayer');
             const downloadLink = document.getElementById('downloadLink');
 
-            const duration = parseFloat(durationInput.value);
-            if (!duration || duration <= 0) {
-                alert("Please enter a valid duration.");
+            const durationStr = durationInput.value.trim();
+            const timeRegex = /^(\d{2}):(\d{2}):(\d{2}):(\d{2})$/;
+            const match = durationStr.match(timeRegex);
+            
+            if (!match) {
+                alert("Please enter a valid duration in HH:MM:SS:CC format.");
+                return;
+            }
+
+            const h = parseInt(match[1], 10);
+            const m = parseInt(match[2], 10);
+            const s = parseInt(match[3], 10);
+            const c = parseInt(match[4], 10);
+            const duration = (h * 3600) + (m * 60) + s + (c / 100);
+
+            if (duration <= 0) {
+                alert("Duration must be greater than zero.");
                 return;
             }
 
