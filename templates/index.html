@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Timecode Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --panel-bg: rgba(30, 41, 59, 0.7);
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--bg-color), #000000);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .container {
+            background: var(--panel-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            padding: 40px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+        h1 {
+            margin-top: 0;
+            font-weight: 800;
+            font-size: 2.5rem;
+            background: linear-gradient(to right, #60a5fa, #a78bfa);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        p {
+            color: var(--text-muted);
+            margin-bottom: 30px;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #cbd5e1;
+        }
+        input {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-size: 1rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.2s, transform 0.1s;
+        }
+        button:hover {
+            background: var(--primary-hover);
+        }
+        button:active {
+            transform: scale(0.98);
+        }
+        button:disabled {
+            background: #475569;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .result-area {
+            margin-top: 30px;
+            display: none;
+            animation: fadeIn 0.5s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        video {
+            width: 100%;
+            border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.1);
+            background: #000;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+        }
+        .download-btn {
+            display: inline-block;
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: background 0.2s;
+        }
+        .download-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .loading {
+            display: none;
+            margin-top: 20px;
+            color: var(--text-muted);
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Video Timecode Generator</h1>
+        <p>Generate a professional timecode video overlay in seconds.</p>
+        
+        <div class="input-group">
+            <label for="duration">Duration (seconds)</label>
+            <input type="number" id="duration" placeholder="e.g. 10" min="1" max="3600" value="10">
+        </div>
+        
+        <button id="generateBtn" onclick="generateVideo()">Generate Video</button>
+        
+        <div class="loading" id="loadingIndicator">
+            <div class="spinner"></div> Generating your video...
+        </div>
+        
+        <div class="result-area" id="resultArea">
+            <video id="videoPlayer" controls></video>
+            <br>
+            <a id="downloadLink" href="#" class="download-btn" download>Download Video</a>
+        </div>
+    </div>
+
+    <script>
+        async function generateVideo() {
+            const btn = document.getElementById('generateBtn');
+            const durationInput = document.getElementById('duration');
+            const loading = document.getElementById('loadingIndicator');
+            const resultArea = document.getElementById('resultArea');
+            const videoPlayer = document.getElementById('videoPlayer');
+            const downloadLink = document.getElementById('downloadLink');
+
+            const duration = parseFloat(durationInput.value);
+            if (!duration || duration <= 0) {
+                alert("Please enter a valid duration.");
+                return;
+            }
+
+            // UI changes
+            btn.disabled = true;
+            loading.style.display = 'block';
+            resultArea.style.display = 'none';
+
+            try {
+                const response = await fetch('/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ duration: duration })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Cache buster to ensure video refreshes
+                    const vidUrl = data.video_url + '?t=' + new Date().getTime();
+                    videoPlayer.src = vidUrl;
+                    downloadLink.href = vidUrl;
+                    resultArea.style.display = 'block';
+                } else {
+                    alert("Error: " + (data.error || "Failed to generate video"));
+                }
+            } catch (err) {
+                alert("Network error occurred.");
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+                loading.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
