@@ -18,39 +18,38 @@ def generate_video():
     data = request.json
     try:
         duration_seconds = float(data.get("duration", 5))
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid duration"}), 400
-
-    filename = f"video_{uuid.uuid4().hex}.mp4"
-    output_path = os.path.join(VIDEOS_DIR, filename)
-    
-    # Use the centisecond version (00->99) as provided by Claude
-    import imageio_ffmpeg
-    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
-    font_path = os.path.abspath('font.ttf').replace('\\\\', '/')
-    ffmpeg_cmd = [
-        ffmpeg_exe, "-y",
-        "-f", "lavfi", "-i", f"color=c=black:s=1920x1080:r=30:d={duration_seconds}",
-        "-vf",
-        f"drawtext=fontfile='{font_path}':"
-        "text='%{eif\\\\:floor(t/3600)\\\\:d\\\\:2}\\\\:%{eif\\\\:floor(mod(t\\\\,3600)/60)\\\\:d\\\\:2}"
-        "\\\\:%{eif\\\\:floor(mod(t\\\\,60))\\\\:d\\\\:2}\\\\:%{eif\\\\:floor(mod(t\\\\,1)*100)\\\\:d\\\\:2}':"
-        "fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2",
-        "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p",
-        output_path,
-    ]
-    
-    # Khusus Windows: cegah jendela CMD muncul, TANPA bikin error di Railway/Linux
-    kwargs = {}
-    if os.name == "nt":
-        kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
         
-    try:
+        filename = f"video_{uuid.uuid4().hex}.mp4"
+        output_path = os.path.join(VIDEOS_DIR, filename)
+        
+        import imageio_ffmpeg
+        ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+        font_path = os.path.abspath('font.ttf').replace('\\\\', '/')
+        ffmpeg_cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "lavfi", "-i", f"color=c=black:s=1920x1080:r=30:d={duration_seconds}",
+            "-vf",
+            f"drawtext=fontfile='{font_path}':"
+            "text='%{eif\\\\:floor(t/3600)\\\\\\:d\\\\\\:2}\\\\\\:%{eif\\\\:floor(mod(t\\\\,3600)/60)\\\\\\:d\\\\\\:2}"
+            "\\\\\\:%{eif\\\\:floor(mod(t\\\\,60))\\\\\\:d\\\\\\:2}\\\\\\:%{eif\\\\:floor(mod(t\\\\,1)*100)\\\\\\:d\\\\\\:2}':"
+            "fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2",
+            "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p",
+            output_path,
+        ]
+        
+        kwargs = {}
+        if os.name == "nt":
+            kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+            
         result = subprocess.run(ffmpeg_cmd, check=True, capture_output=True, **kwargs)
         return jsonify({"video_url": f"/static/videos/{filename}"})
     except subprocess.CalledProcessError as e:
         error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
         return jsonify({"error": f"FFmpeg error: {error_msg}"}), 500
+    except Exception as e:
+        import traceback
+        trace = traceback.format_exc()
+        return jsonify({"error": f"App error: {str(e)}\n\n{trace}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000, host="0.0.0.0")
