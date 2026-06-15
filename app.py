@@ -1,4 +1,4 @@
-﻿import os
+import os
 import subprocess
 import uuid
 from flask import Flask, render_template, request, jsonify
@@ -27,13 +27,14 @@ def generate_video():
     # Use the centisecond version (00->99) as provided by Claude
     import imageio_ffmpeg
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    font_path = os.path.abspath('font.ttf').replace('\\\\', '/')
     ffmpeg_cmd = [
         ffmpeg_exe, "-y",
         "-f", "lavfi", "-i", f"color=c=black:s=1920x1080:r=30:d={duration_seconds}",
         "-vf",
-        "drawtext=fontfile=font.ttf:"
-        "text='%{eif\\:floor(t/3600)\\:d\\:2}\\:%{eif\\:floor(mod(t\\,3600)/60)\\:d\\:2}"
-        "\\:%{eif\\:floor(mod(t\\,60))\\:d\\:2}\\:%{eif\\:floor(mod(t\\,1)*100)\\:d\\:2}':"
+        f"drawtext=fontfile='{font_path}':"
+        "text='%{eif\\\\:floor(t/3600)\\\\:d\\\\:2}\\\\:%{eif\\\\:floor(mod(t\\\\,3600)/60)\\\\:d\\\\:2}"
+        "\\\\:%{eif\\\\:floor(mod(t\\\\,60))\\\\:d\\\\:2}\\\\:%{eif\\\\:floor(mod(t\\\\,1)*100)\\\\:d\\\\:2}':"
         "fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2",
         "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p",
         output_path,
@@ -45,10 +46,11 @@ def generate_video():
         kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
         
     try:
-        subprocess.run(ffmpeg_cmd, check=True, capture_output=True, **kwargs)
+        result = subprocess.run(ffmpeg_cmd, check=True, capture_output=True, **kwargs)
         return jsonify({"video_url": f"/static/videos/{filename}"})
     except subprocess.CalledProcessError as e:
-        return jsonify({"error": f"FFmpeg failed: {e.stderr.decode('utf-8', errors='ignore')}"}), 500
+        error_msg = e.stderr.decode('utf-8', errors='replace') if e.stderr else str(e)
+        return jsonify({"error": f"FFmpeg error: {error_msg}"}), 500
 
 if __name__ == "__main__":
     app.run(debug=True, port=5000, host="0.0.0.0")
