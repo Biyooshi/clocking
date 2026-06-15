@@ -29,9 +29,8 @@ def generate_video():
             ffmpeg_exe, "-y",
             "-f", "lavfi", "-i", f"color=c=black:s=1920x1080:r=30:d={duration_seconds}",
             "-vf",
-            f"drawtext=fontfile='{font_path}':"
-            "text='%{eif\\\\:floor(t/3600)\\\\\\:d\\\\\\:2}\\\\\\:%{eif\\\\:floor(mod(t\\\\,3600)/60)\\\\\\:d\\\\\\:2}"
-            "\\\\\\:%{eif\\\\:floor(mod(t\\\\,60))\\\\\\:d\\\\\\:2}\\\\\\:%{eif\\\\:floor(mod(t\\\\,1)*100)\\\\\\:d\\\\\\:2}':"
+            f"drawtext=fontfile='{font_path}':" +
+            r"text='%{eif\:floor(t/3600)\:d\:2}\:%{eif\:floor(mod(t\,3600)/60)\:d\:2}\:%{eif\:floor(mod(t\,60))\:d\:2}\:%{eif\:floor(mod(t\,1)*100)\:d\:2}':" +
             "fontcolor=white:fontsize=150:x=(w-text_w)/2:y=(h-text_h)/2",
             "-c:v", "libx264", "-preset", "fast", "-pix_fmt", "yuv420p",
             output_path,
